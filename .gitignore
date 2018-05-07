@@ -1,6 +1,9 @@
 *~
 *#*
 
+# STACK
+/.stack-work
+
 # CABAL
 /dist
 /cabal-dev
