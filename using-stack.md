@@ -1,19 +1,12 @@
-- stack init
+- stack init  => Creates stack.yaml file
 
-- change resolver to nightly-2018-04-21 due to various problems with
+- stack setup => Installs ghc in a sandbox
 
-	- doctest-0.15   -- some tests fail with doctest-0.13
-
-	- intero         -- does not build in newer versions
-
-- stack build
-
-- stack test (to build with doctest and QuickTest)
-
-	- stack exec doctest -- -isrc src/Let/GetSetLens.hs
-
-	or
-
-	- add test/doctests.hs as in doctest documentation
+- add doctest-0.15.0 to stack.yaml extra-deps (needed because version in snapshot is older)
 	
-	- stack test
+	#extra-deps: []
+	extra-deps:
+	- doctest-0.15.0
+
+- stack build --test --no-run-tests => builds project and dependencies for project and tests
+
