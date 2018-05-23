@@ -187,8 +187,8 @@ foldMapTAgain ::
   (a -> b)
   -> t a
   -> b
-foldMapTAgain f =
-  getConst . traverse (Const . f)
+foldMapTAgain =
+  foldMapOf traverse
 
 -- | Let's create a type-alias for this type of function.
 type Fold s t a b =
@@ -205,14 +205,14 @@ folds ::
   -> (a -> Const b a)
   -> s
   -> Const t s
-folds =
-  error "todo: folds"
+folds l f =
+  Const . l (getConst . f)
 
 folded ::
   Foldable f =>
   Fold (f a) (f a) a a
 folded =
-  error "todo: folded"
+  folds foldMap
 
 ----
 
@@ -226,8 +226,8 @@ get ::
   Get a s a
   -> s
   -> a
-get =
-  error "todo: get"
+get l =
+  getConst . l Const
 
 ----
 
@@ -242,20 +242,22 @@ type Traversal s t a b =
 -- | Traverse both sides of a pair.
 both ::
   Traversal (a, a) (b, b) a b
-both =
-  error "todo: both"
+both f (a1, a2) = 
+  (,) <$> f a1 <*> f a2
 
 -- | Traverse the left side of @Either@.
 traverseLeft ::
   Traversal (Either a x) (Either b x) a b
-traverseLeft =
-  error "todo: traverseLeft"
+traverseLeft f =
+  either (fmap Left . f) (pure . Right)
+--traverseLeft f (Left a)  = Left <$> f a
+--traverseLeft _ (Right x) = pure (Right x)
 
 -- | Traverse the right side of @Either@.
 traverseRight ::
   Traversal (Either x a) (Either x b) a b
-traverseRight =
-  error "todo: traverseRight"
+traverseRight f =
+  either (pure . Left) (fmap Right . f)
 
 type Traversal' a b =
   Traversal a a b b
