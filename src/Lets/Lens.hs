@@ -285,42 +285,48 @@ type Prism s t a b =
   p a (f b)
   -> p s (f t)
 
+-- _Left :: forall p f. (Choice p, Applicative f) => p a (f b) -> p (Either a x) (f (Either b x))
 _Left ::
   Prism (Either a x) (Either b x) a b
 _Left =
-  error "todo: _Left"
+  dimap id (either (fmap Left) (fmap Right . pure)) . left
 
+-- _Right :: forall p f. (Choice p, Applicative f) => p a (f b) -> p (Either x a) (f (Either x b))
 _Right ::
   Prism (Either x a) (Either x b) a b 
 _Right =
-  error "todo: _Right"
+  dimap id (either (fmap Left . pure) (fmap Right)) . right
 
 prism ::
   (b -> t)
   -> (s -> Either t a)
-  -> Prism s t a b
-prism =
-  error "todo: prism"
+  -> Prism s t a b -- forall p f. (Choice p, Applicative f) => p a (f b) -> p s (f t)
+prism bt seta =
+  (dimap seta (either pure (fmap bt))) . right -- looking a little :-D
 
+-- _Just :: forall p f. (Choice p, Applicative f) => p a (f b) -> p (Maybe a) (f (Maybe b))
 _Just ::
   Prism (Maybe a) (Maybe b) a b
 _Just =
-  error "todo: _Just"
+  prism Just (maybe (Left Nothing) Right)
 
+-- _Nothing :: forall p f. (Choice p, Applicative f) => p () (f ()) -> p (Maybe a) (f (Maybe a))
 _Nothing ::
   Prism (Maybe a) (Maybe a) () ()
 _Nothing =
-  error "todo: _Nothing"
+  dimap (const ()) (fmap (const Nothing))
+  --prism (const Nothing) (maybe (Right ()) (Left . Just))
 
 setP ::
-  Prism s t a b
+  Prism s t a b -- forall p f. (Choice p, Applicative f) => p a (f b) -> p s (f t)
   -> s
   -> Either t a
-setP _ _ =
-  error "todo: setP"
+setP p =
+  swap . p Left
+  where swap = either Right Left
 
 getP ::
-  Prism s t a b
+  Prism s t a b -- forall p f. (Choice p, Applicative f) => p a (f b) -> p s (f t)
   -> b
   -> t
 getP _ _ =
