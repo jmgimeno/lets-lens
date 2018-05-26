@@ -353,8 +353,8 @@ modify ::
   -> (a -> b)
   -> s
   -> t
-modify _ _ _ =
-  error "todo: modify"
+modify l f =
+  getIdentity . l (Identity . f)
 
 -- | An alias for @modify@.
 (%~) ::
@@ -383,8 +383,8 @@ infixr 4 %~
   -> b
   -> s
   -> t
-(.~) _ _ _ =
-  error "todo: (.~)"
+(.~) l b  =
+  l %~ const b
 
 infixl 5 .~
 
@@ -404,8 +404,8 @@ fmodify ::
   -> (a -> f b)
   -> s
   -> f t 
-fmodify _ _ _ =
-  error "todo: fmodify"
+fmodify l =
+  l 
 
 -- |
 --
@@ -420,8 +420,8 @@ fmodify _ _ _ =
   -> f b
   -> s
   -> f t
-(|=) _ _ _ =
-  error "todo: (|=)"
+(|=) l fb =
+  fmodify l (const fb)
 
 infixl 5 |=
 
@@ -430,9 +430,9 @@ infixl 5 |=
 -- >>> modify fstL (*10) (3, "abc")
 -- (30,"abc")
 fstL ::
-  Lens (a, x) (b, x) a b
-fstL =
-  error "todo: fstL"
+  Lens (a, x) (b, x) a b -- forall f. (a -> f b) -> (a, x) -> f (b, x)
+fstL afb (a, x) =
+  fmap (\b -> (b, x)) (afb a)
 
 -- |
 --
@@ -440,8 +440,8 @@ fstL =
 -- (13,"abcdef")
 sndL ::
   Lens (x, a) (x, b) a b
-sndL =
-  error "todo: sndL"
+sndL afb (x, a) =
+  fmap (\b -> (x, b)) (afb a)
 
 -- |
 --
@@ -470,9 +470,9 @@ sndL =
 mapL ::
   Ord k =>
   k
-  -> Lens (Map k v) (Map k v) (Maybe v) (Maybe v)
-mapL =
-  error "todo: mapL"
+  -> Lens (Map k v) (Map k v) (Maybe v) (Maybe v) -- forall f. Functor f => (Maybe v -> f (Maybe v)) -> (Map k v) -> f (Map k v)
+mapL k f m =
+  fmap (maybe (Map.delete k m) (\v -> Map.insert k v m)) (f (Map.lookup k m))
 
 -- |
 --
@@ -502,8 +502,8 @@ setL ::
   Ord k =>
   k
   -> Lens (Set.Set k) (Set.Set k) Bool Bool
-setL =
-  error "todo: setL"
+setL k f s =
+  fmap (bool (Set.insert k s) (Set.delete k s)) (f (Set.member k s))
 
 -- |
 --
@@ -516,8 +516,8 @@ compose ::
   Lens s t a b
   -> Lens q r s t
   -> Lens q r a b
-compose _ _ =
-  error "todo: compose"
+compose =
+  flip (.)
 
 -- | An alias for @compose@.
 (|.) ::
@@ -539,7 +539,7 @@ infixr 9 |.
 identity ::
   Lens a b a b
 identity =
-  error "todo: identity"
+  id
 
 -- |
 --
@@ -548,11 +548,18 @@ identity =
 --
 -- >>> set (product fstL sndL) (("abc", 3), (4, "def")) ("ghi", "jkl")
 -- (("ghi",3),(4,"jkl"))
-product ::
-  Lens s t a b
-  -> Lens q r c d
-  -> Lens (s, q) (t, r) (a, c) (b, d)
-product _ _ =
+
+{-
+fstL ::
+  Lens (a, x) (b, x) a b -- forall f. (a -> f b) -> (a, x) -> f (b, x)
+fstL afb (a, x) =
+  fmap (\b -> (b, x)) (afb a)
+-}
+product ::                            -- forall f. Functor =>
+  Lens s t a b                        -- (a -> f b) -> s -> f t 
+  -> Lens q r c d                     -- (c -> f d) -> q -> f r
+  -> Lens (s, q) (t, r) (a, c) (b, d) -- ((a,c) -> f (b, d)) -> (s, q) -> f (t, r)
+product l1 l2 acfbd (s, q) =
   error "todo: product"
 
 -- | An alias for @product@.
