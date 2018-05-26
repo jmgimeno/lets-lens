@@ -302,7 +302,7 @@ prism ::
   -> (s -> Either t a)
   -> Prism s t a b -- forall p f. (Choice p, Applicative f) => p a (f b) -> p s (f t)
 prism bt seta =
-  (dimap seta (either pure (fmap bt))) . right -- looking a little :-D
+  dimap seta (either pure (fmap bt)) . right -- looking a little :-D
 
 -- _Just :: forall p f. (Choice p, Applicative f) => p a (f b) -> p (Maybe a) (f (Maybe b))
 _Just ::
@@ -329,8 +329,8 @@ getP ::
   Prism s t a b -- forall p f. (Choice p, Applicative f) => p a (f b) -> p s (f t)
   -> b
   -> t
-getP _ _ =
-  error "todo: getP"
+getP p =
+  getIdentity . getTagged . p . Tagged . Identity -- looking a little ;-D
 
 type Prism' a b =
   Prism a a b b
