@@ -503,7 +503,7 @@ setL ::
   k
   -> Lens (Set.Set k) (Set.Set k) Bool Bool
 setL k f s =
-  fmap (bool (Set.insert k s) (Set.delete k s)) (f (Set.member k s))
+  fmap (bool (Set.delete k s) (Set.insert k s)) (f (Set.member k s))
 
 -- |
 --
@@ -585,12 +585,12 @@ infixr 3 ***
 --
 -- >>> set (choice fstL sndL) (Right ("abc", 7)) 8
 -- Right ("abc",8)
-choice ::
-  Lens s t a b
-  -> Lens q r a b
-  -> Lens (Either s q) (Either t r) a b
-choice _ _ =
-  error "todo: choice"
+choice ::                               -- forall f. Functor f =>
+  Lens s t a b                          -- (a -> f b) -> s -> f t
+  -> Lens q r a b                       -- (a -> f b) -> q -> f r
+  -> Lens (Either s q) (Either t r) a b -- (a -> f b) -> (Either s q) -> f (Either t r)
+choice l1 l2 afb =
+  either (fmap Left . l1 afb) (fmap Right . l2 afb)
 
 -- | An alias for @choice@.
 (|||) ::
@@ -674,7 +674,7 @@ getSuburb ::
   Person
   -> String
 getSuburb =
-  error "todo: getSuburb"
+  get $ addressL . suburbL
 
 -- |
 --
@@ -688,7 +688,7 @@ setStreet ::
   -> String
   -> Person
 setStreet =
-  error "todo: setStreet"
+  set $ addressL . streetL
 
 -- |
 --
@@ -701,7 +701,7 @@ getAgeAndCountry ::
   (Person, Locality)
   -> (Int, String)
 getAgeAndCountry =
-  error "todo: getAgeAndCountry"
+  get $ ageL *** countryL
 
 -- |
 --
@@ -713,7 +713,7 @@ getAgeAndCountry =
 setCityAndLocality ::
   (Person, Address) -> (String, Locality) -> (Person, Address)
 setCityAndLocality =
-  error "todo: setCityAndLocality"
+  set $ addressL . localityL . cityL *** localityL
   
 -- |
 --
@@ -726,7 +726,7 @@ getSuburbOrCity ::
   Either Address Locality
   -> String
 getSuburbOrCity =
-  error "todo: getSuburbOrCity"
+  get $ suburbL ||| cityL
 
 -- |
 --
@@ -740,7 +740,7 @@ setStreetOrState ::
   -> String
   -> Either Person Locality
 setStreetOrState =
-  error "todo: setStreetOrState"
+  set $ addressL . streetL ||| stateL
 
 -- |
 --
@@ -753,7 +753,7 @@ modifyCityUppercase ::
   Person
   -> Person
 modifyCityUppercase =
-  error "todo: modifyCityUppercase"
+  modify (addressL . localityL . cityL) (fmap toUpper)
 
 -- |
 --
@@ -765,8 +765,8 @@ modifyCityUppercase =
 modifyIntAndLengthEven ::
   IntAnd [a]
   -> IntAnd Bool
-modifyIntAndLengthEven =
-  error "todo: modifyIntAndLengthEven"
+modifyIntAndLengthEven (IntAnd n as) =
+  IntAnd n (even (length as))
 
 ----
 
@@ -776,8 +776,8 @@ modifyIntAndLengthEven =
 -- Locality "ABC" "DEF" "GHI"
 traverseLocality ::
   Traversal' Locality String
-traverseLocality =
-  error "todo: traverseLocality"
+traverseLocality f (Locality city state country) =
+  Locality <$> f city <*> f state <*> f country
 
 -- |
 --
@@ -786,15 +786,19 @@ traverseLocality =
 --
 -- >>> over intOrIntP (*10) (IntOrIsNot "abc")
 -- IntOrIsNot "abc"
-intOrIntP ::
-  Prism' (IntOr a) Int
+intOrIntP ::           -- forall p f. (Choice p, Applicative f) =>
+  Prism' (IntOr a) Int -- p Int (f Int) -> p (IntOr a) (f (IntOr a))
 intOrIntP =
-  error "todo: intOrIntP"
+  prism IntOrIs f -- prism :: (Int -> IntOr a) -> ((IntOr a) -> Either (IntOr a) Int) -> Prism' (IntOr a) Int
+    where f (IntOrIs n) = Right n
+          f ioa         = Left ioa
 
-intOrP ::
-  Prism (IntOr a) (IntOr b) a b
+intOrP ::                       -- forall p f. (Choice p, Applicative f) =>
+  Prism (IntOr a) (IntOr b) a b -- p a (f b) -> p (IntOr a) (f (IntOr b))
 intOrP =
-  error "todo: intOrP"
+  prism IntOrIsNot f -- prism :: (b -> IntOr b) -> ((IntOr a) -> Either (IntOr b) a) -> Prism (IntOr a) (IntOr b) a b 
+    where f (IntOrIs n)    = Left (IntOrIs n) 
+          f (IntOrIsNot a) = Right a
 
 -- |
 --
@@ -809,5 +813,5 @@ intOrP =
 intOrLengthEven ::
   IntOr [a]
   -> IntOr Bool
-intOrLengthEven =
-  error "todo: intOrLengthEven"
+intOrLengthEven (IntOrIs n)     = IntOrIs n
+intOrLengthEven (IntOrIsNot as) = IntOrIsNot (even (length as))
