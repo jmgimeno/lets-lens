@@ -559,8 +559,12 @@ product ::                            -- forall f. Functor =>
   Lens s t a b                        -- (a -> f b) -> s -> f t 
   -> Lens q r c d                     -- (c -> f d) -> q -> f r
   -> Lens (s, q) (t, r) (a, c) (b, d) -- ((a,c) -> f (b, d)) -> (s, q) -> f (t, r)
-product l1 l2 acfbd (s, q) =
-  error "todo: product"
+product l r acfbd (s, q) =            -- by looking a lot :''-(
+  getAlongsideLeft (l (\a -> AlongsideLeft (
+    getAlongsideRight (r (\c -> AlongsideRight (
+      acfbd (a,c))) 
+    q))) 
+  s)
 
 -- | An alias for @product@.
 (***) ::
