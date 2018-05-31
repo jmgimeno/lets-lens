@@ -142,8 +142,8 @@ modify ::
   -> (b -> b)
   -> a
   -> a
-modify l f a = 
-  set l a (f (get l a))
+modify (Lens s g) f a = 
+  s a (f (g a))
 
 -- | An alias for @modify@.
 (%~) ::
@@ -172,8 +172,7 @@ infixr 4 %~
   -> b
   -> a
   -> a
-l .~ b = 
-  l %~ const b  
+(.~) (Lens s _) = flip s
 
 infixl 5 .~
 
@@ -193,8 +192,8 @@ fmodify ::
   -> (b -> f b)
   -> a
   -> f a
-fmodify l f a = 
-  fmap (set l a) (f (get l a))
+fmodify (Lens s g) f a = 
+  fmap (s a) (f (g a))
 
 -- |
 --
@@ -209,8 +208,8 @@ fmodify l f a =
   -> f b
   -> a
   -> f a
-(|=) l fb a = 
-  fmap (set l a) fb 
+(|=) (Lens s _) fb a = 
+  fmap (s a) fb 
 
 infixl 5 |=
 
@@ -268,7 +267,7 @@ mapL ::
   k
   -> Lens (Map k v) (Maybe v)
 mapL k =
-  Lens (\m -> maybe (Map.delete k m) (\v -> Map.insert k v m)) (Map.lookup k)
+  Lens (flip (maybe (Map.delete k) (Map.insert k))) (Map.lookup k)
 
 -- |
 --
@@ -294,7 +293,7 @@ setL ::
   k
   -> Lens (Set k) Bool
 setL k =
-  Lens (\s b -> if b then Set.insert k s else Set.delete k s) (Set.member k)
+  Lens (flip (bool (Set.delete k) (Set.insert k))) (Set.member k)
 
 -- |
 --
@@ -307,8 +306,8 @@ compose ::
   Lens b c
   -> Lens a b
   -> Lens a c
-compose l1 l2 =
-  Lens (\a c -> set l2 a (set l1 (get l2 a) c)) (get l1 . get l2)
+compose (Lens s1 g1) (Lens s2 g2) =
+  Lens (\a c -> s2 a (s1 (g2 a) c)) (g1 . g2)
 
 -- | An alias for @compose@.
 (|.) ::
@@ -343,8 +342,8 @@ product ::
   Lens a b
   -> Lens c d
   -> Lens (a, c) (b, d)
-product l1 l2 =
-  Lens (\(a, c) (b, d) -> (set l1 a b, set l2 c d)) (\(a, c) -> (get l1 a, get l2 c))
+product (Lens s1 g1) (Lens s2 g2) =
+  Lens (\(a, c) (b, d) -> (s1 a b, s2 c d)) (\(a, c) -> (g1 a, g2 c))
 
 -- | An alias for @product@.
 (***) ::
@@ -373,8 +372,8 @@ choice ::
   Lens a x
   -> Lens b x
   -> Lens (Either a b) x
-choice l1 l2 =
-  Lens  (\e x -> either (\a -> Left (set l1 a x)) (\b -> Right (set l2 b x)) e) (either (get l1) (get l2))
+choice (Lens s1 g1) (Lens s2 g2) =
+  Lens  (\e x -> either (\a -> Left (s1 a x)) (\b -> Right (s2 b x)) e) (either g1 g2)
 
 -- | An alias for @choice@.
 (|||) ::
